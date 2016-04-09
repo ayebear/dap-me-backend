@@ -23,16 +23,14 @@ function push_to_client(client_id, data) {
 }
 
 function push_to_all() {
-	var data = get_data();
-
 	// Send data to all clients
-	for (var client_id in clients) {
-		push_to_client(client_id, data);
-	}
+	var client_data = get_data();
+	io.emit('user_data', client_data);
 }
 
 io.on('connection', function(socket) {
 
+	// Send data to newly connected client
 	var client_data = get_data();
 	socket.emit('user_data', client_data);
 
@@ -47,7 +45,10 @@ io.on('connection', function(socket) {
 		console.log("Received data from: " + socket.id);
 		console.log(data);
 		clients[socket.id].data = data;
-		push_to_all();
+
+		// Send to all clients except sender
+		var client_data = get_data();
+		socket.broadcast.emit('user_data', client_data);
 	});
 
 	socket.on('disconnect', function() {
