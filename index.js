@@ -4,9 +4,9 @@ var clients = {};
 
 function get_data() {
 	// Get data to send
-	var data = {};
+	var data = [];
 	for (var client_id in clients) {
-		data[client_id] = clients[client_id].data;
+		data.push(clients[client_id].data);
 	}
 	return data;
 }
@@ -30,8 +30,10 @@ io.on('connection', function(socket) {
 
 	clients[socket.id] = {
 		socket: socket,
-		data: {}
+		data: []
 	};
+
+	console.log('Client ' + socket.id + ' connected');
 
 	socket.on('user_data', function(data) {
 		console.log("Received data from: " + socket.id);
