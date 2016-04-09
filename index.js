@@ -6,7 +6,10 @@ function get_data() {
 	// Get data to send
 	var data = [];
 	for (var client_id in clients) {
-		data.push(clients[client_id].data);
+		var client = clients[client_id];
+		if (client.data) {
+			data.push(client.data);
+		}
 	}
 
 	console.log('data:');
@@ -30,11 +33,12 @@ function push_to_all() {
 
 io.on('connection', function(socket) {
 
-	socket.emit('user_data', get_data());
+	var client_data = get_data();
+	socket.emit('user_data', client_data);
 
 	clients[socket.id] = {
 		socket: socket,
-		data: []
+		data: null
 	};
 
 	console.log('Client ' + socket.id + ' connected');
