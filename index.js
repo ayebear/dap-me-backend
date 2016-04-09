@@ -8,10 +8,14 @@ function get_data() {
 	for (var client_id in clients) {
 		data.push(clients[client_id].data);
 	}
+
+	console.log('data:');
+	console.log(data);
+
 	return data;
 }
 
-function push(client_id, data) {
+function push_to_client(client_id, data) {
 	clients[client_id].socket.emit('user_data', data);
 }
 
@@ -20,7 +24,7 @@ function push_to_all() {
 
 	// Send data to all clients
 	for (var client_id in clients) {
-		push(client_id, data);
+		push_to_client(client_id, data);
 	}
 }
 
