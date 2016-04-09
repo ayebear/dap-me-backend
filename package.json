@@ -1,0 +1,22 @@
+{
+  "name": "dap-me-backend",
+  "version": "1.0.0",
+  "description": "DapMe backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayebear/dap-me-backend.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ayebear/dap-me-backend/issues"
+  },
+  "homepage": "https://github.com/ayebear/dap-me-backend#readme",
+  "dependencies": {
+    "socket.io": "^1.4.5"
+  }
+}
