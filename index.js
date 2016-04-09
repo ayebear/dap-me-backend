@@ -78,6 +78,18 @@ function get_nearby_users(source) {
 	return nearby_users;
 }
 
+function update_nearby_users() {
+	for (var source in clients) {
+		var nearby_users = get_nearby_users(source);
+
+		// Nearby user list
+		clients[source].nearby = nearby_users;
+
+		// Nearby user boolean
+		clients[source].data.nearby = (nearby_users.length > 0);
+	}
+}
+
 io.on('connection', function(socket) {
 
 	// Send data to newly connected client
@@ -97,15 +109,10 @@ io.on('connection', function(socket) {
 		clients[socket.id].data = data;
 
 		// Compute nearby users
-		var nearby_users = get_nearby_users(socket.id);
 		update_nearby_users();
 
-		// Send to all clients except sender
-		var client_data = get_data();
-		socket.broadcast.emit('user_data', client_data);
-
-		// Send shortest distances to clients
-		// io.emit('shortest', distances);
+		// Send to all clients (nearby may have changed)
+		push_to_all();
 	});
 
 	socket.on('disconnect', function() {
