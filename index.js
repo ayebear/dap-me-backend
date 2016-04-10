@@ -25,16 +25,14 @@ function get_data() {
 			data.push(client.data);
 		}
 	}
-
-	console.log('data:');
-	console.log(data);
-
 	return data;
 }
 
 function push_to_all() {
 	// Send data to all clients
 	var client_data = get_data();
+	console.log('push to all data:');
+	console.log(client_data);
 	io.emit('user_data', client_data);
 }
 
@@ -93,6 +91,7 @@ function sync_users() {
 	for (var user_id in clients) {
 		var socket_id = clients[user_id];
 		if (!(socket_id in connections)) {
+			console.log("Deleting client: " + user_id);
 			delete clients[user_id];
 		}
 	}
@@ -102,6 +101,8 @@ io.on('connection', function(socket) {
 
 	// Send data to newly connected client
 	var client_data = get_data();
+	console.log('client connected data:');
+	console.log(client_data);
 	socket.emit('user_data', client_data);
 
 	connections[socket.id] = socket;
@@ -115,17 +116,17 @@ io.on('connection', function(socket) {
 		console.log(data);
 		if ('user' in data) {
 			// Add new user if needed
-			if (!(data.user in clients)) {
+			if (data.user in clients) {
+				var client = clients[data.user];
+				client.data.user = data.user;
+				client.data.lat = data.lat;
+				client.data.lng = data.lng;
+			} else {
 				clients[data.user] = {
 					data: data,
 					nearby: [],
 					socket_id: socket.id
 				};
-			} else {
-				var client = clients[data.user];
-				client.data.user = data.user;
-				client.data.lat = data.lat;
-				client.data.lng = data.lng;
 			}
 
 			// Compute nearby users
