@@ -145,8 +145,8 @@ io.on('connection', function(socket) {
 		if ('user' in data) {
 			var nearby = clients[data.user].nearby;
 			for (var user in nearby) {
-				console.log('Notifying ' + user);
-				connections[clients[user].socket_id].emit('notification', {
+				console.log('Notifying ' + nearby[user]);
+				connections[clients[nearby[user]].socket_id].emit('notification', {
 					'source_user': data.user
 				});
 			}
