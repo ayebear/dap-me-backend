@@ -21,8 +21,10 @@ function get_data() {
 	var data = [];
 	for (var client_id in clients) {
 		var client = clients[client_id];
-		if (client.data && client.data.length > 0) {
+		if (client.data && Object.keys(client.data).length > 0) {
 			data.push(client.data);
+		} else {
+			console.log("No data? " + client_id);
 		}
 	}
 	return data;
