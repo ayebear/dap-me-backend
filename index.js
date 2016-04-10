@@ -117,10 +117,15 @@ io.on('connection', function(socket) {
 			// Add new user if needed
 			if (!(data.user in clients)) {
 				clients[data.user] = {
-					data: {},
+					data: data,
 					nearby: [],
 					socket_id: socket.id
 				};
+			} else {
+				var client = clients[data.user];
+				client.data.user = data.user;
+				client.data.lat = data.lat;
+				client.data.lng = data.lng;
 			}
 
 			// Compute nearby users
