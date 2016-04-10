@@ -1,19 +1,17 @@
 var io = require('socket.io')();
 var haversine = require('haversine');
 
-// User id => User
-var clients = {};
 /*
-Now:
-	Socket id => {
-		data: (user, lat, long, nearby),
-		socket,
-		nearby
-	}
+User id => {
+	data: (user, lat, long, nearby),
+	nearby (list of users),
+	socket_id
+}
 */
+var clients = {};
 
 // Socket id => Socket
-// var connections = {};
+var connections = {};
 
 // Socket id => Nearby user list
 // var nearby = {};
@@ -23,7 +21,7 @@ function get_data() {
 	var data = [];
 	for (var client_id in clients) {
 		var client = clients[client_id];
-		if (client.data) {
+		if (client.data && client.data.length > 0) {
 			data.push(client.data);
 		}
 	}
@@ -90,33 +88,52 @@ function update_nearby_users() {
 	}
 }
 
+function sync_users() {
+	// Delete users without socket connections
+	for (var user_id in clients) {
+		var socket_id = clients[user_id];
+		if (!(socket_id in connections)) {
+			delete clients[user_id];
+		}
+	}
+}
+
 io.on('connection', function(socket) {
 
 	// Send data to newly connected client
 	var client_data = get_data();
 	socket.emit('user_data', client_data);
 
-	clients[socket.id] = {
-		socket: socket,
-		data: null
-	};
+	connections[socket.id] = socket;
 
 	console.log('Client ' + socket.id + ' connected');
+
+	sync_users();
 
 	socket.on('user_data', function(data) {
 		console.log("Received data from: " + socket.id);
 		console.log(data);
-		clients[socket.id].data = data;
+		if ('user' in data) {
+			// Add new user if needed
+			if (!(data.user in clients)) {
+				clients[data.user] = {
+					data: {},
+					nearby: [],
+					socket_id: socket.id
+				};
+			}
 
-		// Compute nearby users
-		update_nearby_users();
+			// Compute nearby users
+			update_nearby_users();
 
-		// Send to all clients (nearby may have changed)
-		push_to_all();
+			// Send to all clients (nearby may have changed)
+			push_to_all();
+		}
 	});
 
 	socket.on('disconnect', function() {
-		delete clients[socket.id];
+		delete connections[socket.id];
+		sync_users();
 		push_to_all();
 	});
 });
