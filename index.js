@@ -139,6 +139,19 @@ io.on('connection', function(socket) {
 		}
 	});
 
+	socket.on('notification', function(data) {
+		// Received notification from client
+		// Forward message to all nearby clients
+		if ('user' in data) {
+			var nearby = clients[data.user].nearby;
+			for (var user in nearby) {
+				connections[clients[user].socket_id].emit('notification', {
+					'source_user': data.user
+				});
+			}
+		}
+	});
+
 	socket.on('disconnect', function() {
 		delete connections[socket.id];
 		sync_users();
