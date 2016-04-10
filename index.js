@@ -16,6 +16,8 @@ var connections = {};
 // Socket id => Nearby user list
 // var nearby = {};
 
+var DAP_RADIUS = 1.0;
+
 function get_data() {
 	// Get data to send
 	var data = [];
@@ -67,7 +69,7 @@ function get_nearby_users(source) {
 
 	for (var dest in clients) {
 		var distance = get_distance(source, dest);
-		if (distance && distance < 0.02) {
+		if (distance && distance < DAP_RADIUS) {
 			// nearby_users.push(clients[dest].data.user);
 			nearby_users.push(dest);
 		}
@@ -142,7 +144,7 @@ io.on('connection', function(socket) {
 	socket.on('notification', function(data) {
 		// Received notification from client
 		// Forward message to all nearby clients
-		if ('user' in data) {
+		if ('user' in data && data.user in clients) {
 			var nearby = clients[data.user].nearby;
 			for (var user in nearby) {
 				console.log('Notifying ' + nearby[user]);
