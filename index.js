@@ -107,8 +107,7 @@ function sync_users() {
 	}
 }
 
-io.on('connection', function(socket) {
-
+function handle_on_connection(socket) {
 	// Send data to newly connected client
 	var client_data = get_data();
 	socket.emit('user_data', client_data);
@@ -119,56 +118,76 @@ io.on('connection', function(socket) {
 	console.log('Client ' + socket.id + ' connected');
 
 	sync_users();
+}
 
-	socket.on('user_data', function(data) {
-		if ('user' in data) {
-			// Add new user if needed
-			if (data.user in clients) {
-				// Merge fields from user's message
-				// TODO: Make this generic and move "nearby" and other data originating from server to another parent in the dictionary
-				var client = clients[data.user];
-				client.data.user = data.user;
-				client.data.lat = data.lat;
-				client.data.lng = data.lng;
-			} else {
-				// Create new client with data from message
-				clients[data.user] = {
-					data: data,
-					nearby: [],
-					socket_id: socket.id
-				};
-			}
-
-			// Compute nearby users
-			update_nearby_users();
-
-			// Send to all clients (nearby may have changed)
-			push_to_all();
+function handle_user_data(socket, data) {
+	if ('user' in data) {
+		// Add new user if needed
+		if (data.user in clients) {
+			// Merge fields from user's message
+			// TODO: Make this generic and move "nearby" and other data originating from server to another parent in the dictionary
+			var client = clients[data.user];
+			client.data.user = data.user;
+			client.data.lat = data.lat;
+			client.data.lng = data.lng;
+		} else {
+			// Create new client with data from message
+			clients[data.user] = {
+				data: data,
+				nearby: [],
+				socket_id: socket.id
+			};
 		}
+
+		// Compute nearby users
+		update_nearby_users();
+
+		// Send to all clients (nearby may have changed)
+		push_to_all();
+	}
+}
+
+function handle_notification(socket, data) {
+	// Received notification from client
+	if ('user' in data && data.user in clients) {
+		var nearby = clients[data.user].nearby;
+
+		// Forward message to all nearby clients
+		for (var user in nearby) {
+			connections[clients[nearby[user]].socket_id].emit('notification', {
+				'source_user': data.user
+			});
+		}
+	}
+}
+
+function handle_disconnect(socket) {
+	// Remove socket and user when they disconnect
+	delete connections[socket.id];
+	sync_users();
+
+	// Notify other users that this client disconnected
+	push_to_all();
+}
+
+function register_socket_handlers(socket) {
+	socket.on('user_data', function(data) {
+		handle_user_data(socket, data);
 	});
 
 	socket.on('notification', function(data) {
-		// Received notification from client
-		if ('user' in data && data.user in clients) {
-			var nearby = clients[data.user].nearby;
-
-			// Forward message to all nearby clients
-			for (var user in nearby) {
-				connections[clients[nearby[user]].socket_id].emit('notification', {
-					'source_user': data.user
-				});
-			}
-		}
+		handle_notification(socket, data);
 	});
 
 	socket.on('disconnect', function() {
-		// Remove socket and user when they disconnect
-		delete connections[socket.id];
-		sync_users();
-
-		// Notify other users that this client disconnected
-		push_to_all();
+		handle_disconnect(socket);
 	});
+}
+
+// Handle when new clients connect
+io.on('connection', function(socket) {
+	handle_on_connection(socket);
+	register_socket_handlers(socket);
 });
 
 // Start socket.io server
