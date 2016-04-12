@@ -69,12 +69,13 @@ function get_distance(source, dest) {
 }
 
 // Returns a list of nearby user IDs based on dap radius
-function get_nearby_users(source) {
+function get_nearby_users(source, radius) {
 	var nearby_users = [];
+	radius = radius || DAP_RADIUS
 
 	for (var dest in clients) {
 		var distance = get_distance(source, dest);
-		if (distance && distance < DAP_RADIUS) {
+		if (distance && distance < radius) {
 			nearby_users.push(dest);
 		}
 	}
