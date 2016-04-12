@@ -33,8 +33,6 @@ function get_data() {
 		// Ensure there is data from this user before sending it
 		if (client.data && Object.keys(client.data).length > 0) {
 			data.push(client.data);
-		} else {
-			console.log("No data? " + client_id);
 		}
 	}
 	return data;
@@ -43,8 +41,6 @@ function get_data() {
 function push_to_all() {
 	// Send data to all clients
 	var client_data = get_data();
-	console.log('push to all data:');
-	console.log(client_data);
 	io.emit('user_data', client_data);
 }
 
@@ -53,7 +49,6 @@ function get_distance(source, dest) {
 	if (source != dest) {
 		var source_client = clients[source].data;
 		var dest_client = clients[dest].data;
-		console.log('SOURCE: ' + source);
 		if ('lat' in source_client && 'lng' in source_client
 				&& 'lat' in dest_client && 'lng' in dest_client) {
 			// Get start and end points
@@ -67,9 +62,7 @@ function get_distance(source, dest) {
 			};
 
 			// Compute the distance using haversine
-			var distance = haversine(start, end);
-			console.log(distance);
-			return distance;
+			return haversine(start, end);
 		}
 	}
 	return null;
@@ -107,7 +100,7 @@ function sync_users() {
 	for (var user_id in clients) {
 		var socket_id = clients[user_id];
 		if (!(socket_id in connections)) {
-			console.log("Deleting client: " + user_id);
+			console.log("User disconnected: " + user_id);
 			delete clients[user_id];
 		}
 	}
@@ -117,8 +110,6 @@ io.on('connection', function(socket) {
 
 	// Send data to newly connected client
 	var client_data = get_data();
-	console.log('client connected data:');
-	console.log(client_data);
 	socket.emit('user_data', client_data);
 
 	// Keep socket object to use for future communications
@@ -129,8 +120,6 @@ io.on('connection', function(socket) {
 	sync_users();
 
 	socket.on('user_data', function(data) {
-		console.log("Received data from: " + socket.id);
-		console.log(data);
 		if ('user' in data) {
 			// Add new user if needed
 			if (data.user in clients) {
@@ -164,7 +153,6 @@ io.on('connection', function(socket) {
 
 			// Forward message to all nearby clients
 			for (var user in nearby) {
-				console.log('Notifying ' + nearby[user]);
 				connections[clients[nearby[user]].socket_id].emit('notification', {
 					'source_user': data.user
 				});
