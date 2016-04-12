@@ -1,28 +1,36 @@
 var io = require('socket.io')();
 var haversine = require('haversine');
 
+
+
 /*
-User id => {
-	data: (user, lat, long, nearby),
-	nearby (list of users),
+Stores all client (user) data in memory
+user_id: {
+	data: {user, lat, long, nearby},
+	nearby: [list of users],
 	socket_id
 }
 */
 var clients = {};
 
+// Stores the socket objects by socket ID
 // Socket id => Socket
 var connections = {};
 
-// Socket id => Nearby user list
-// var nearby = {};
-
+// Radius in kilometers to use for computing nearby users
 var DAP_RADIUS = 1.0;
 
+// Port to run socket.io server on
+var SERVER_PORT = 80;
+
+
+
 function get_data() {
-	// Get data to send
+	// Get public user data to send back to clients
 	var data = [];
 	for (var client_id in clients) {
 		var client = clients[client_id];
+		// Ensure there is data from this user before sending it
 		if (client.data && Object.keys(client.data).length > 0) {
 			data.push(client.data);
 		} else {
@@ -40,6 +48,7 @@ function push_to_all() {
 	io.emit('user_data', client_data);
 }
 
+// Returns the distance in kilometers between two geographic locations
 function get_distance(source, dest) {
 	if (source != dest) {
 		var source_client = clients[source].data;
@@ -47,6 +56,7 @@ function get_distance(source, dest) {
 		console.log('SOURCE: ' + source);
 		if ('lat' in source_client && 'lng' in source_client
 				&& 'lat' in dest_client && 'lng' in dest_client) {
+			// Get start and end points
 			var start = {
 				latitude: source_client.lat,
 				longitude: source_client.lng
@@ -56,6 +66,7 @@ function get_distance(source, dest) {
 				longitude: dest_client.lng
 			};
 
+			// Compute the distance using haversine
 			var distance = haversine(start, end);
 			console.log(distance);
 			return distance;
@@ -64,13 +75,13 @@ function get_distance(source, dest) {
 	return null;
 }
 
+// Returns a list of nearby user IDs based on dap radius
 function get_nearby_users(source) {
 	var nearby_users = [];
 
 	for (var dest in clients) {
 		var distance = get_distance(source, dest);
 		if (distance && distance < DAP_RADIUS) {
-			// nearby_users.push(clients[dest].data.user);
 			nearby_users.push(dest);
 		}
 	}
@@ -78,6 +89,7 @@ function get_nearby_users(source) {
 	return nearby_users;
 }
 
+// Sets the nearby user lists and booleans
 function update_nearby_users() {
 	for (var source in clients) {
 		var nearby_users = get_nearby_users(source);
@@ -109,6 +121,7 @@ io.on('connection', function(socket) {
 	console.log(client_data);
 	socket.emit('user_data', client_data);
 
+	// Keep socket object to use for future communications
 	connections[socket.id] = socket;
 
 	console.log('Client ' + socket.id + ' connected');
@@ -121,11 +134,14 @@ io.on('connection', function(socket) {
 		if ('user' in data) {
 			// Add new user if needed
 			if (data.user in clients) {
+				// Merge fields from user's message
+				// TODO: Make this generic and move "nearby" and other data originating from server to another parent in the dictionary
 				var client = clients[data.user];
 				client.data.user = data.user;
 				client.data.lat = data.lat;
 				client.data.lng = data.lng;
 			} else {
+				// Create new client with data from message
 				clients[data.user] = {
 					data: data,
 					nearby: [],
@@ -143,9 +159,10 @@ io.on('connection', function(socket) {
 
 	socket.on('notification', function(data) {
 		// Received notification from client
-		// Forward message to all nearby clients
 		if ('user' in data && data.user in clients) {
 			var nearby = clients[data.user].nearby;
+
+			// Forward message to all nearby clients
 			for (var user in nearby) {
 				console.log('Notifying ' + nearby[user]);
 				connections[clients[nearby[user]].socket_id].emit('notification', {
@@ -156,10 +173,14 @@ io.on('connection', function(socket) {
 	});
 
 	socket.on('disconnect', function() {
+		// Remove socket and user when they disconnect
 		delete connections[socket.id];
 		sync_users();
+
+		// Notify other users that this client disconnected
 		push_to_all();
 	});
 });
 
-io.listen(80);
+// Start socket.io server
+io.listen(SERVER_PORT);
